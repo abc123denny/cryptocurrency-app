@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import {
   StyleSheet,
   View,
@@ -14,15 +14,38 @@ import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import { printLog } from '../utils/LogUtils';
 
-export default function HomeScreen({ navigation }) {
-  const baseApiUrl = 'https://api.coingecko.com/api/v3';
-  const defaultCoinDataRequestParams = {
-    currency: 'usd',
-    sortBy: 'market_cap_desc',
-    dataPerPage: 25,
-    page: 1
-  };
+const baseApiUrl = 'https://api.coingecko.com/api/v3';
+const defaultCoinDataRequestParams = {
+  currency: 'usd',
+  sortBy: 'market_cap_desc',
+  dataPerPage: 25,
+  page: 1
+};
 
+const areCoinItemPropsEqual = (prevProps, nextProps) => {
+  return nextProps.item.id === prevProps.item.id
+    && nextProps.item.current_price === prevProps.item.current_price
+    && nextProps.item.total_volume === prevProps.item.total_volume
+    && nextProps.navigation === prevProps.navigation;
+}
+
+const CoinItem = memo(({ item, currency, navigation }) => {
+  return (
+    <TouchableOpacity
+      style={styles.coinItemContainer}
+      onPress={() => navigation.navigate('Details',
+        { coinId: item.id, coinName: item.name, coinSymbol: item.symbol, currency: currency })}>
+      <Image
+        style={styles.coinItemLogo}
+        source={{ uri: item.image }} />
+      <Text style={styles.coinItemNameText}>{item.name}</Text>
+      <Text style={styles.coinItemPriceText}>{item.current_price}</Text>
+      <Text style={styles.coinItemVolumeText}>{item.total_volume}</Text>
+    </TouchableOpacity>
+  );
+}, areCoinItemPropsEqual);
+
+export default memo(function HomeScreen({ navigation }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshingList, setIsRefreshingList] = useState(false);
   const [coinData, setCoinData] = useState([]);
@@ -31,7 +54,7 @@ export default function HomeScreen({ navigation }) {
   const [coinDataRequestParams, setCoinDataRequestParams] = useState(defaultCoinDataRequestParams);
   const [isListLoadedCompletely, setIsListLoadedCompletely] = useState(false);
 
-  const getCoinData = async (requestParams) => {
+  const getCoinData = useCallback(async (requestParams) => {
     printLog('Get coin data. isLoading: ' + isLoading
       + ', page: ' + requestParams.page
       + ', isListLoadedCompletely: ' + isListLoadedCompletely);
@@ -76,9 +99,9 @@ export default function HomeScreen({ navigation }) {
     else {
       setIsRefreshingList(false);
     }
-  }
+  }, [coinData, isLoading, isListLoadedCompletely]);
 
-  const onPullToRefreshCoinDataList = () => {
+  const onPullToRefreshCoinDataList = useCallback(() => {
     printLog('>>>>> Pull to refresh coin data list.');
     setIsRefreshingList(true);
     setCoinDataRequestParams({
@@ -86,31 +109,39 @@ export default function HomeScreen({ navigation }) {
       currency: currency,
       sortBy: sortBy
     });
-  }
+  }, [currency, sortBy]);
 
-  const onCurrencyChanged = (newCurrency) => {
+  const onCurrencyChanged = useCallback((newCurrency) => {
     printLog('>>>>> On currency changed. currency: ' + newCurrency);
+    if (newCurrency === currency) {
+      printLog('Currency is the same as previous one. Ignore the change.');
+      return;
+    }
     setIsRefreshingList(true);
     setCurrency(newCurrency);
     setCoinDataRequestParams({
-      ...coinDataRequestParams,
+      ...defaultCoinDataRequestParams,
       currency: newCurrency,
-      page: 1
+      sortBy: sortBy
     });
-  }
+  }, [currency, sortBy]);
 
-  const onSortByChanged = (newSortBy) => {
+  const onSortByChanged = useCallback((newSortBy) => {
     printLog('>>>>> On sort by changed. sortBy: ' + newSortBy);
+    if (newSortBy === sortBy) {
+      printLog('Sort by is the same as previous one. Ignore the change.');
+      return;
+    }
     setIsRefreshingList(true);
     setSortBy(newSortBy);
     setCoinDataRequestParams({
-      ...coinDataRequestParams,
-      sortBy: newSortBy,
-      page: 1
+      ...defaultCoinDataRequestParams,
+      currency: currency,
+      sortBy: newSortBy
     })
-  }
+  }, [currency, sortBy]);
 
-  const getMoreCoinData = () => {
+  const getMoreCoinData = useCallback(() => {
     if (!isLoading && !isListLoadedCompletely) {
       const newRequestParams = {
         ...coinDataRequestParams,
@@ -119,9 +150,9 @@ export default function HomeScreen({ navigation }) {
       printLog('>>>>> Get more coin data. page: ' + newRequestParams.page);
       setCoinDataRequestParams(newRequestParams);
     }
-  }
+  }, [isLoading, isListLoadedCompletely, coinDataRequestParams]);
 
-  const shareToTwitter = () => {
+  const shareToTwitter = useCallback(() => {
     let shareText = 'Today\'s top 10 cryptocurrencies (' + currency.toUpperCase() + '):\n';
     coinData.forEach((element, index, array) => {
       if (index < 10) {
@@ -131,7 +162,7 @@ export default function HomeScreen({ navigation }) {
     printLog(shareText);
     const url = 'https://twitter.com/intent/tweet?text=' + encodeURI(shareText);
     Linking.openURL(url);
-  }
+  }, [currency, coinData]);
 
   useEffect(() => {
     getCoinData(coinDataRequestParams);
@@ -154,29 +185,23 @@ export default function HomeScreen({ navigation }) {
     });
   }, [coinData]);
 
-  const renderCoinItem = ({ item }) => {
+  const renderCoinItem = useCallback(({ item }) => {
     return (
-      <TouchableOpacity
-        style={styles.coinItemContainer}
-        onPress={() => navigation.navigate('Details',
-          { coinId: item.id, coinName: item.name, coinSymbol: item.symbol, currency: currency })}>
-        <Image
-          style={styles.coinItemLogo}
-          source={{ uri: item.image }} />
-        <Text style={styles.coinItemNameText}>{item.name}</Text>
-        <Text style={styles.coinItemPriceText}>{item.current_price}</Text>
-        <Text style={styles.coinItemVolumeText}>{item.total_volume}</Text>
-      </TouchableOpacity>
+      <CoinItem
+        item={item}
+        currency={currency}
+        navigation={navigation}
+      />
     );
-  }
+  }, [currency, navigation]);
 
-  const renderFooter = () => {
+  const renderFooter = useCallback(() => {
     return (
       <>
         {isLoading && coinData.length > 0 ? <ActivityIndicator size="large" color="#b3b3b3" /> : null}
       </>
     );
-  }
+  }, [isLoading, coinData]);
 
   return (
     <View style={styles.container} >
@@ -218,7 +243,7 @@ export default function HomeScreen({ navigation }) {
       />
     </View>
   );
-}
+});
 
 const column1Flex = 1;
 const column2Flex = 1;

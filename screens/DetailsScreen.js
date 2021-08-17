@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import {
   StyleSheet,
   View,
@@ -12,15 +12,15 @@ import RenderHtml from 'react-native-render-html';
 import { LineChart, Grid } from 'react-native-svg-charts';
 import { printLog } from '../utils/LogUtils';
 
-export default function DetailsScreen({ navigation, route }) {
-  const baseApiUrl = 'https://api.coingecko.com/api/v3';
+const baseApiUrl = 'https://api.coingecko.com/api/v3';
 
+export default memo(function DetailsScreen({ navigation, route }) {
   const { width } = useWindowDimensions();
   const { coinId, coinName, coinSymbol, currency } = route.params;
   const [coinData, setCoinData] = useState(null);
   const [coinMarketData, setCoinMarketData] = useState({ prices: [] });
 
-  const getCoinData = async (coinId) => {
+  const getCoinData = useCallback(async (coinId) => {
     try {
       const url = baseApiUrl + '/coins/' + coinId + '?market_data=true';
       printLog('request url: ' + url);
@@ -35,9 +35,9 @@ export default function DetailsScreen({ navigation, route }) {
       console.error(error);
     } finally {
     }
-  }
+  }, []);
 
-  const getCoinMarketData = async (coinId, currency) => {
+  const getCoinMarketData = useCallback(async (coinId, currency) => {
     try {
       const url = baseApiUrl + '/coins/' + coinId + '/market_chart?vs_currency=' + currency + '&days=1';
       printLog('request url: ' + url);
@@ -50,7 +50,7 @@ export default function DetailsScreen({ navigation, route }) {
       console.error(error);
     } finally {
     }
-  }
+  }, []);
 
   useEffect(() => {
     if (coinId) {
@@ -106,7 +106,7 @@ export default function DetailsScreen({ navigation, route }) {
       </ScrollView>
     </View>
   );
-}
+});
 
 const positivePriceChangeColor = '#239e2b';
 const negativePriceChangeColor = '#ab2626';
