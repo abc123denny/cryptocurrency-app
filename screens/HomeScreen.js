@@ -13,6 +13,7 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import { printLog } from '../utils/LogUtils';
+import { scaleText } from '../utils/TextUtils';
 
 const baseApiUrl = 'https://api.coingecko.com/api/v3';
 const defaultCoinDataRequestParams = {
@@ -38,7 +39,10 @@ const CoinItem = memo(({ item, currency, navigation }) => {
       <Image
         style={styles.coinItemLogo}
         source={{ uri: item.image }} />
-      <Text style={styles.coinItemNameText}>{item.name}</Text>
+      <View style={styles.coinItemNameContainer}>
+        <Text style={styles.coinItemSymbolText}>{item.symbol.toUpperCase()}</Text>
+        <Text style={styles.coinItemNameText}>{item.name}</Text>
+      </View>
       <Text style={styles.coinItemPriceText}>{item.current_price}</Text>
       <Text style={styles.coinItemVolumeText}>{item.total_volume}</Text>
     </TouchableOpacity>
@@ -269,6 +273,7 @@ const styles = StyleSheet.create({
   },
   coinTitleContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
     paddingLeft: 40,
     paddingRight: 10,
     paddingTop: 5,
@@ -277,15 +282,16 @@ const styles = StyleSheet.create({
   coinTitlePriceText: {
     flex: column2Flex,
     textAlign: 'right',
-    textAlignVertical: 'center'
+    fontSize: scaleText(16)
   },
   coinTitleVolumeText: {
     flex: column3Flex,
     textAlign: 'right',
-    textAlignVertical: 'center'
+    fontSize: scaleText(16)
   },
   coinItemContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
     padding: 10
   },
   coinItemLogo: {
@@ -293,19 +299,29 @@ const styles = StyleSheet.create({
     height: 30,
     marginRight: 8
   },
+  coinItemNameContainer: {
+    flex: column1Flex,
+    flexDirection: 'column'
+  },
+  coinItemSymbolText: {
+    flex: column1Flex,
+    textAlign: 'left',
+    fontSize: scaleText(20)
+  },
   coinItemNameText: {
     flex: column1Flex,
     textAlign: 'left',
-    textAlignVertical: 'center'
+    fontSize: scaleText(13),
+    color: 'grey'
   },
   coinItemPriceText: {
     flex: column2Flex,
     textAlign: 'right',
-    textAlignVertical: 'center'
+    fontSize: scaleText(16)
   },
   coinItemVolumeText: {
     flex: column3Flex,
     textAlign: 'right',
-    textAlignVertical: 'center'
+    fontSize: scaleText(16)
   }
 });
