@@ -10,8 +10,8 @@ import {
   TouchableOpacity,
   Linking
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import { Ionicons } from '@expo/vector-icons';
+import { connectActionSheet, useActionSheet } from '@expo/react-native-action-sheet';
+import { Ionicons, MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
 import { printLog } from '../utils/LogUtils';
 import { scaleText } from '../utils/TextUtils';
 
@@ -49,7 +49,7 @@ const CoinItem = memo(({ item, currency, navigation }) => {
   );
 }, areCoinItemPropsEqual);
 
-export default memo(function HomeScreen({ navigation }) {
+export default memo(connectActionSheet(function HomeScreen({ navigation }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshingList, setIsRefreshingList] = useState(false);
   const [coinData, setCoinData] = useState([]);
@@ -57,6 +57,7 @@ export default memo(function HomeScreen({ navigation }) {
   const [sortBy, setSortBy] = useState('market_cap_desc');
   const [coinDataRequestParams, setCoinDataRequestParams] = useState(defaultCoinDataRequestParams);
   const [isListLoadedCompletely, setIsListLoadedCompletely] = useState(false);
+  const { showActionSheetWithOptions } = useActionSheet();
 
   const getCoinData = useCallback(async (requestParams) => {
     printLog('Get coin data. isLoading: ' + isLoading
@@ -168,26 +169,94 @@ export default memo(function HomeScreen({ navigation }) {
     Linking.openURL(url);
   }, [currency, coinData]);
 
+  const onOpenCurrencyActionSheet = useCallback(() => {
+    const options = ['USD', 'TWD', 'Cancel'];
+
+    showActionSheetWithOptions(
+      {
+        options,
+        cancelButtonIndex: 2,
+        destructiveButtonIndex: null,
+        title: 'Currency'
+      },
+      buttonIndex => {
+        newCurrency = '';
+
+        if (buttonIndex === 0) {
+          newCurrency = 'usd';
+        }
+        else if (buttonIndex === 1) {
+          newCurrency = 'twd';
+        }
+        
+        if (newCurrency) {
+          onCurrencyChanged(newCurrency);
+        }
+      },
+    );
+  }, [onCurrencyChanged]);
+
+  const onOpenSortByActionSheet = useCallback(() => {
+    const options = ['Market Cap', 'ID', 'Price', 'Volume', 'Cancel'];
+
+    showActionSheetWithOptions(
+      {
+        options,
+        cancelButtonIndex: 4,
+        destructiveButtonIndex: null,
+        title: 'Sort by'
+      },
+      buttonIndex => {
+        newSortBy = '';
+
+        if (buttonIndex === 0) {
+          newSortBy = 'market_cap_desc';
+        }
+        else if (buttonIndex === 1) {
+          newSortBy = 'id_asc';
+        }
+        else if (buttonIndex === 2) {
+          newSortBy = 'price_desc';
+        }
+        else if (buttonIndex === 3) {
+          newSortBy = 'volume_desc';
+        }
+        
+        if (newSortBy) {
+          onSortByChanged(newSortBy);
+        }
+      },
+    );
+  }, [onSortByChanged]);
+
   useEffect(() => {
     getCoinData(coinDataRequestParams);
   }, [coinDataRequestParams]);
 
   useEffect(() => {
-    printLog('=====On coin data changed.=====');
-    printLog('total coin data size: ' + coinData.length);
+    printLog('=====On coin data, currency, sortBy changed.=====');
+    printLog('coin data size: ' + coinData.length);
+    printLog('currency: ' + currency + ', sortBy: ' + sortBy);
     //coinData.forEach(element => printLog(element.id));
 
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity
-          style={{ padding: 10 }}
-          disabled={coinData.length == 0}
-          onPress={shareToTwitter}>
-          <Ionicons name="logo-twitter" size={24} color="white" />
-        </TouchableOpacity>
+        <View style={styles.headerRightIconContainer}>
+          <TouchableOpacity
+            style={{ padding: 5 }}
+            onPress={onOpenCurrencyActionSheet}>
+            <MaterialCommunityIcons name="currency-usd-circle" size={24} color="white" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{ padding: 5 }}
+            disabled={coinData.length == 0}
+            onPress={shareToTwitter}>
+            <Ionicons name="logo-twitter" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
       ),
     });
-  }, [coinData]);
+  }, [coinData, currency, sortBy]);
 
   const renderCoinItem = useCallback(({ item }) => {
     return (
@@ -210,30 +279,19 @@ export default memo(function HomeScreen({ navigation }) {
   return (
     <View style={styles.container} >
       <StatusBar hidden={false} backgroundColor='#21b1ff' />
-      <View style={styles.pickerContainer}>
-        <Picker
-          enabled={!isRefreshingList}
-          style={{ flex: 1 }}
-          selectedValue={currency}
-          onValueChange={(itemValue, itemIndex) => onCurrencyChanged(itemValue)}>
-          <Picker.Item label='USD' value='usd' />
-          <Picker.Item label='TWD' value='twd' />
-        </Picker>
-        <Picker
-          enabled={!isRefreshingList}
-          style={{ flex: 1 }}
-          selectedValue={sortBy}
-          onValueChange={(itemValue, itemIndex) => onSortByChanged(itemValue)}>
-          <Picker.Item label='Market Cap' value='market_cap_desc' />
-          <Picker.Item label='ID' value='id_asc' />
-          <Picker.Item label='Price' value='price_desc' />
-          <Picker.Item label='Volume' value='volume_desc' />
-        </Picker>
-      </View>
       <View style={styles.coinTitleContainer}>
         <View style={{ flex: column1Flex }}></View>
-        <Text style={styles.coinTitlePriceText}>Price</Text>
-        <Text style={styles.coinTitleVolumeText}>Volume</Text>
+        <View style={styles.coinTitlePriceContainer}>
+          <Text style={styles.coinTitlePriceText}>Price</Text>
+        </View>
+        <View style={styles.coinTitleVolumeContainer}>
+          <TouchableOpacity
+            style={styles.coinTitleVolumeButton}
+            onPress={onOpenSortByActionSheet}>
+            <Text style={styles.coinTitleVolumeText}>Volume</Text>
+            <FontAwesome name="sort" size={15} color="black" style={{ marginLeft: 5 }} />
+          </TouchableOpacity>
+        </View>
       </View>
       <FlatList
         data={coinData}
@@ -247,7 +305,7 @@ export default memo(function HomeScreen({ navigation }) {
       />
     </View>
   );
-});
+}));
 
 const column1Flex = 1;
 const column2Flex = 1;
@@ -267,27 +325,44 @@ const styles = StyleSheet.create({
   titleText: {
     color: 'white'
   },
-  pickerContainer: {
+  headerRightIconContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
     padding: 5
   },
   coinTitleContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingLeft: 40,
+    alignItems: 'stretch',
+    paddingLeft: 48,
     paddingRight: 10,
-    paddingTop: 5,
-    paddingBottom: 5
+    paddingTop: 6,
+    paddingBottom: 6,
+    backgroundColor: '#e8e8e8'
+  },
+  coinTitlePriceContainer: {
+    flex: column2Flex,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center'
   },
   coinTitlePriceText: {
-    flex: column2Flex,
     textAlign: 'right',
-    fontSize: scaleText(16)
+    fontSize: scaleText(18)
+  },
+  coinTitleVolumeContainer: {
+    flex: column3Flex,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center'
+  },
+  coinTitleVolumeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 5
   },
   coinTitleVolumeText: {
-    flex: column3Flex,
     textAlign: 'right',
-    fontSize: scaleText(16)
+    fontSize: scaleText(18)
   },
   coinItemContainer: {
     flexDirection: 'row',
