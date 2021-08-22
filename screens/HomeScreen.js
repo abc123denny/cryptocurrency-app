@@ -43,7 +43,17 @@ const CoinItem = memo(({ item, currency, navigation }) => {
         <Text style={styles.coinItemSymbolText}>{item.symbol.toUpperCase()}</Text>
         <Text style={styles.coinItemNameText}>{item.name}</Text>
       </View>
-      <Text style={styles.coinItemPriceText}>{item.current_price}</Text>
+      <View style={styles.coinItemPriceContainer}>
+        <Text style={styles.coinItemPriceText}>{item.current_price}</Text>
+        {item.price_change_percentage_24h_in_currency ?
+          <Text style={item.price_change_percentage_24h_in_currency >= 0 ?
+            styles.coinItemPricePositiveChangeText : styles.coinItemPriceNegativeChangeText}>
+            {(item.price_change_percentage_24h_in_currency >= 0 ?
+              '+' + item.price_change_percentage_24h_in_currency.toFixed(2) + '%' :
+              '-' + (-item.price_change_percentage_24h_in_currency.toFixed(2)) + '%')
+            }
+          </Text> : null}
+      </View>
       <Text style={styles.coinItemVolumeText}>{item.total_volume}</Text>
     </TouchableOpacity>
   );
@@ -188,7 +198,7 @@ export default memo(connectActionSheet(function HomeScreen({ navigation }) {
         else if (buttonIndex === 1) {
           newCurrency = 'twd';
         }
-        
+
         if (newCurrency) {
           onCurrencyChanged(newCurrency);
         }
@@ -221,7 +231,7 @@ export default memo(connectActionSheet(function HomeScreen({ navigation }) {
         else if (buttonIndex === 3) {
           newSortBy = 'volume_desc';
         }
-        
+
         if (newSortBy) {
           onSortByChanged(newSortBy);
         }
@@ -311,6 +321,9 @@ const column1Flex = 1;
 const column2Flex = 1;
 const column3Flex = 1.5;
 
+const positivePriceChangeColor = '#239e2b';
+const negativePriceChangeColor = '#ab2626';
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -389,14 +402,30 @@ const styles = StyleSheet.create({
     fontSize: scaleText(13),
     color: 'grey'
   },
+  coinItemPriceContainer: {
+    flex: column2Flex,
+    flexDirection: 'column'
+  },
   coinItemPriceText: {
     flex: column2Flex,
     textAlign: 'right',
-    fontSize: scaleText(16)
+    fontSize: scaleText(18)
+  },
+  coinItemPricePositiveChangeText: {
+    flex: column2Flex,
+    textAlign: 'right',
+    fontSize: scaleText(13),
+    color: positivePriceChangeColor
+  },
+  coinItemPriceNegativeChangeText: {
+    flex: column2Flex,
+    textAlign: 'right',
+    fontSize: scaleText(13),
+    color: negativePriceChangeColor
   },
   coinItemVolumeText: {
     flex: column3Flex,
     textAlign: 'right',
-    fontSize: scaleText(16)
+    fontSize: scaleText(15)
   }
 });

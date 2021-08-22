@@ -72,13 +72,14 @@ export default memo(function DetailsScreen({ navigation, route }) {
               <Text style={styles.priceText}>
                 {currency.toUpperCase() + '$ ' + coinData.market_data.current_price[currency]}
               </Text>
-              <Text style={coinData.market_data.price_change_24h_in_currency[currency] >= 0 ?
-                styles.pricePositiveChangeText : styles.priceNegativeChangeText}>
-                {(coinData.market_data.price_change_24h_in_currency[currency] >= 0 ?
-                  '+ ' + coinData.market_data.price_change_24h_in_currency[currency].toFixed(2) :
-                  '- ' + (-coinData.market_data.price_change_24h_in_currency[currency].toFixed(2)))
-                }
-              </Text>
+              {coinData.market_data.price_change_24h_in_currency[currency] ?
+                <Text style={coinData.market_data.price_change_24h_in_currency[currency] >= 0 ?
+                  styles.pricePositiveChangeText : styles.priceNegativeChangeText}>
+                  {(coinData.market_data.price_change_24h_in_currency[currency] >= 0 ?
+                    '+ ' + coinData.market_data.price_change_24h_in_currency[currency].toFixed(2) :
+                    '- ' + (-coinData.market_data.price_change_24h_in_currency[currency].toFixed(2)))
+                  }
+                </Text> : null}
             </View>
             <LineChart
               style={{ height: 200 }}
